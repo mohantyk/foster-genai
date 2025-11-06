@@ -1,0 +1,19 @@
+[project]
+name = "gen-ai-foster"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "imageio>=2.37.2",
+    "ipykernel>=7.1.0",
+    "jupyterlab>=4.4.10",
+    "kaggle>=1.7.4.5",
+    "matplotlib>=3.10.7",
+    "pytorch-lightning>=2.5.5",
+    "sns>=0.1",
+    "sympy>=1.14.0",
+    "tensorboard>=2.20.0",
+    "torch>=2.9.0",
+    "torchvision>=0.24.0",
+]
