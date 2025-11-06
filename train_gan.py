@@ -304,7 +304,7 @@ def main():
         print(f"Epoch [{epoch + 1}/{EPOCHS}] - D_loss: {avg_d_loss:.4f}, G_loss: {avg_g_loss:.4f}")
         
         # Generate sample images every 10 epochs
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 20 == 0:
             generator.eval()
             with torch.no_grad():
                 sample_noise = torch.randn(5, LATENT_DIM, 1, 1, device=device)
@@ -314,7 +314,7 @@ def main():
             generator.train()
         
         # Save checkpoints every 5 epochs
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 20 == 0:
             torch.save(get_state_dict(generator), checkpoints_dir / f"generator_epoch_{epoch + 1}.pt")
             torch.save(get_state_dict(discriminator), checkpoints_dir / f"discriminator_epoch_{epoch + 1}.pt")
             print(f"  → Checkpoint saved at epoch {epoch + 1}")
