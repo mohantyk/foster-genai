@@ -37,6 +37,11 @@ def calculate_same_padding(kernel_size, stride=2):
     return padding
 
 
+def get_state_dict(model: nn.Module):
+    """Retrieve state dict, handling DataParallel modules transparently."""
+    return model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict()
+
+
 # ============================================================================
 # Dataset
 # ============================================================================
@@ -175,14 +180,32 @@ def main():
     lego_dataset = LegoDataset(dir_path=dataset_path, transform=img_transform)
     print(f"Total images: {len(lego_dataset)}")
     
-    lego_dataloader = DataLoader(lego_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    dataloader_workers = 0
+    pin_memory = False
+    if device.type == 'cuda':
+        dataloader_workers = min(8, torch.cuda.device_count() * 2)
+        pin_memory = True
+
+    lego_dataloader = DataLoader(
+        lego_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=dataloader_workers,
+        pin_memory=pin_memory,
+    )
     print(f"Batches per epoch: {len(lego_dataloader)}")
-    
+
     # Initialize models
     print("\nInitializing models...")
     generator = Generator().to(device)
     discriminator = Discriminator().to(device)
-    
+
+    if device.type == 'cuda' and torch.cuda.device_count() > 1:
+        gpu_count = torch.cuda.device_count()
+        print(f"Wrapping models with DataParallel on {gpu_count} GPUs")
+        generator = nn.DataParallel(generator)
+        discriminator = nn.DataParallel(discriminator)
+
     # Count parameters
     gen_params = sum(p.numel() for p in generator.parameters() if p.requires_grad)
     disc_params = sum(p.numel() for p in discriminator.parameters() if p.requires_grad)
@@ -292,16 +315,16 @@ def main():
         
         # Save checkpoints every 5 epochs
         if (epoch + 1) % 5 == 0:
-            torch.save(generator.state_dict(), checkpoints_dir / f"generator_epoch_{epoch + 1}.pt")
-            torch.save(discriminator.state_dict(), checkpoints_dir / f"discriminator_epoch_{epoch + 1}.pt")
+            torch.save(get_state_dict(generator), checkpoints_dir / f"generator_epoch_{epoch + 1}.pt")
+            torch.save(get_state_dict(discriminator), checkpoints_dir / f"discriminator_epoch_{epoch + 1}.pt")
             print(f"  → Checkpoint saved at epoch {epoch + 1}")
-    
+
     # Save final models
     print("\n" + "=" * 70)
     print("Training complete!")
     writer.close()
-    torch.save(generator.state_dict(), checkpoints_dir / "generator_final.pt")
-    torch.save(discriminator.state_dict(), checkpoints_dir / "discriminator_final.pt")
+    torch.save(get_state_dict(generator), checkpoints_dir / "generator_final.pt")
+    torch.save(get_state_dict(discriminator), checkpoints_dir / "discriminator_final.pt")
     print(f"Final models saved to {checkpoints_dir}")
     print("=" * 70)
 
